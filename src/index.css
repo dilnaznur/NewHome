@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #fffdf7;
+  --color-primary: #e85d26;
+  --color-secondary: #2d6a4f;
+  --color-accent: #f4a261;
+  --color-text: #1a1a1a;
+  --color-border: rgba(26, 26, 26, 0.1);
+
+  --badge-lost: #e85d26;
+  --badge-found: #2d6a4f;
+  --badge-stray: #f4a261;
+
+  --shadow-soft:
+    rgba(26, 26, 26, 0.12) 0 14px 30px -18px,
+    rgba(26, 26, 26, 0.08) 0 10px 18px -18px;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-app-bg text-app-text font-body;
+    background-image:
+      radial-gradient(
+        circle at 12% 18%,
+        rgba(232, 93, 38, 0.08),
+        transparent 36%
+      ),
+      radial-gradient(
+        circle at 78% 26%,
+        rgba(45, 106, 79, 0.08),
+        transparent 40%
+      ),
+      radial-gradient(
+        circle at 42% 88%,
+        rgba(244, 162, 97, 0.08),
+        transparent 40%
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgba(26, 26, 26, 0.02),
+        rgba(26, 26, 26, 0.02) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+    background-blend-mode: multiply;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
+  }
+}
+
+@layer components {
+  .container-app {
+    @apply mx-auto w-full max-w-6xl px-4;
+  }
+
+  .card {
+    @apply rounded-card bg-white shadow-soft border border-app-border;
+  }
+}
