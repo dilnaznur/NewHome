@@ -5,6 +5,17 @@
 --
 -- Запускать в Supabase SQL editor.
 
+-- gen_random_uuid() requires pgcrypto. Supabase обычно включает его, но на всякий случай:
+DO $$
+BEGIN
+  BEGIN
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE 'Skipping CREATE EXTENSION pgcrypto (insufficient privilege).';
+  END;
+END
+$$;
+
 begin;
 
 -- 1) ENUM types
@@ -128,53 +139,58 @@ USING (user_id = auth.uid());
 -- If you prefer using UI, you can skip this block.
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'animal-photos') THEN
-    INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-    VALUES (
-      'animal-photos',
-      'animal-photos',
-      true,
-      5242880,
-      ARRAY['image/jpeg','image/png','image/webp','image/gif']
-    );
-  ELSE
-    UPDATE storage.buckets
-    SET public = true,
-        file_size_limit = 5242880,
-        allowed_mime_types = ARRAY['image/jpeg','image/png','image/webp','image/gif']
-    WHERE id = 'animal-photos';
-  END IF;
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'animal-photos') THEN
+      INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+      VALUES (
+        'animal-photos',
+        'animal-photos',
+        true,
+        5242880,
+        ARRAY['image/jpeg','image/png','image/webp','image/gif']
+      );
+    ELSE
+      UPDATE storage.buckets
+      SET public = true,
+          file_size_limit = 5242880,
+          allowed_mime_types = ARRAY['image/jpeg','image/png','image/webp','image/gif']
+      WHERE id = 'animal-photos';
+    END IF;
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE 'Skipping storage.buckets setup (insufficient privilege). Create bucket via Dashboard > Storage instead.';
+  END;
 END
 $$;
 
 -- Policies for storage.objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
+-- В некоторых проектах Supabase не позволяет менять storage.* из SQL Editor (ошибка 42501: must be owner of table objects).
+-- Поэтому этот блок сделан "best-effort": если нет прав — скрипт не упадёт, а вы настроите политики через Dashboard.
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='animal_photos_public_read') THEN
-    DROP POLICY "animal_photos_public_read" ON storage.objects;
-  END IF;
+  BEGIN
+    EXECUTE 'DROP POLICY IF EXISTS "animal_photos_public_read" ON storage.objects';
+    EXECUTE 'DROP POLICY IF EXISTS "animal_photos_authenticated_upload" ON storage.objects';
 
-  IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='animal_photos_authenticated_upload') THEN
-    DROP POLICY "animal_photos_authenticated_upload" ON storage.objects;
-  END IF;
+    EXECUTE '
+      CREATE POLICY "animal_photos_public_read"
+      ON storage.objects
+      FOR SELECT
+      TO public
+      USING (bucket_id = ''animal-photos'')
+    ';
+
+    EXECUTE '
+      CREATE POLICY "animal_photos_authenticated_upload"
+      ON storage.objects
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (bucket_id = ''animal-photos'')
+    ';
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE 'Skipping storage.objects policies (insufficient privilege). Configure in Dashboard > Storage > Policies.';
+  END;
 END
 $$;
-
--- Public read for this bucket
-CREATE POLICY "animal_photos_public_read"
-ON storage.objects
-FOR SELECT
-TO public
-USING (bucket_id = 'animal-photos');
-
--- Authenticated upload to this bucket
-CREATE POLICY "animal_photos_authenticated_upload"
-ON storage.objects
-FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'animal-photos');
 
 -- Optional: allow authenticated to update/delete their own uploaded files.
 -- (storage.objects has an "owner" column that is set to auth.uid() on upload)

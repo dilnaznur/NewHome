@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/AuthProvider'
 import { Button } from '../components/ui/Button'
-import { Input, Label } from '../components/ui/Fields'
+ 
 
 export function AuthPage() {
   const { user } = useAuth()
@@ -15,39 +15,30 @@ export function AuthPage() {
     return typeof from === 'string' && from.startsWith('/') ? from : '/post'
   }, [location.state])
 
-  const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   if (user) return <Navigate to={redirectTo} replace />
 
-  async function onSubmit(e) {
-    e.preventDefault()
+  async function continueAnonymous() {
     setError('')
     setLoading(true)
 
-    const emailRedirectTo = `${window.location.origin}${redirectTo}`
+    try {
+      const fn = supabase.auth.signInAnonymously
+      if (typeof fn !== 'function') {
+        throw new Error('Анонимный вход недоступен в текущей конфигурации Supabase.')
+      }
 
-    const { error: signInError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo,
-      },
-    })
+      const { error: signInError } = await fn.call(supabase.auth)
+      if (signInError) throw signInError
 
-    if (signInError) {
-      setError(signInError.message)
+      navigate(redirectTo, { replace: true })
+    } catch (e) {
+      setError(e?.message ?? 'Не удалось выполнить вход')
+    } finally {
       setLoading(false)
-      return
     }
-
-    setSent(true)
-    setLoading(false)
-
-    // If the user already has an active session (some providers), go now.
-    const { data } = await supabase.auth.getSession()
-    if (data?.session) navigate(redirectTo, { replace: true })
   }
 
   return (
@@ -57,32 +48,22 @@ export function AuthPage() {
           <div className="text-3xl">🐾</div>
           <h1 className="mt-3 text-2xl font-extrabold">Войти / Зарегистрироваться</h1>
           <p className="mt-2 text-sm text-black/60">
-            Мы отправим ссылку для входа на почту. Никаких паролей.
+            Никаких писем и паролей — быстрый вход, чтобы вы могли публиковать объявления.
           </p>
 
-          <form className="mt-6" onSubmit={onSubmit}>
-            <Label>Email</Label>
-            <Input
-              type="email"
-              required
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-
-            {error ? <div className="mt-3 text-sm font-semibold text-app-primary">{error}</div> : null}
-            {sent ? (
-              <div className="mt-3 rounded-2xl bg-black/5 p-4 text-sm">
-                Ссылка отправлена. Проверьте почту и откройте письмо.
-              </div>
-            ) : null}
-
-            <div className="mt-5">
-              <Button type="submit" variant="primary" className="w-full" disabled={loading}>
-                {loading ? 'Отправляем…' : 'Войти / Зарегистрироваться'}
-              </Button>
+          {error ? (
+            <div className="mt-4 text-sm font-semibold text-app-primary">{error}</div>
+          ) : (
+            <div className="mt-4 rounded-2xl bg-black/5 p-4 text-sm text-black/70">
+              Если появится ошибка, включите в Supabase: Auth → Providers → Anonymous sign-ins.
             </div>
-          </form>
+          )}
+
+          <div className="mt-6">
+            <Button variant="primary" className="w-full" disabled={loading} onClick={continueAnonymous}>
+              {loading ? 'Входим…' : 'Продолжить'}
+            </Button>
+          </div>
         </div>
 
         <div className="mt-4 text-center text-xs text-black/50">

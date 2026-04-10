@@ -10,12 +10,36 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let isMounted = true
 
-    supabase.auth.getSession().then(({ data, error }) => {
+    async function init() {
+      const { data, error } = await supabase.auth.getSession()
       if (!isMounted) return
       if (error) console.warn(error)
-      setSession(data?.session ?? null)
+
+      let nextSession = data?.session ?? null
+
+      // Make auth "invisible": try anonymous sign-in if there's no session.
+      if (!nextSession) {
+        try {
+          const fn = supabase.auth.signInAnonymously
+          if (typeof fn === 'function') {
+            const res = await fn.call(supabase.auth)
+            if (!isMounted) return
+            if (res?.error) {
+              console.warn(res.error)
+            } else {
+              nextSession = res?.data?.session ?? null
+            }
+          }
+        } catch (e) {
+          console.warn(e)
+        }
+      }
+
+      setSession(nextSession)
       setLoading(false)
-    })
+    }
+
+    init()
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)

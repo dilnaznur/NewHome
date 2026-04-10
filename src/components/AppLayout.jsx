@@ -1,5 +1,4 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { useAuth } from './AuthProvider'
 
 function NavItem({ to, children }) {
   return (
@@ -18,8 +17,6 @@ function NavItem({ to, children }) {
 }
 
 export function AppLayout() {
-  const { user, signOut } = useAuth()
-
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-40 border-b border-app-border bg-app-bg/80 backdrop-blur">
@@ -38,7 +35,7 @@ export function AppLayout() {
             <NavItem to="/feed">Лента</NavItem>
             <NavItem to="/map">Карта</NavItem>
             <NavItem to="/post">Подать объявление</NavItem>
-            {user ? <NavItem to="/my">Мои</NavItem> : null}
+            <NavItem to="/my">Мои</NavItem>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -48,22 +45,6 @@ export function AppLayout() {
             >
               + Объявление
             </NavLink>
-            {user ? (
-              <button
-                type="button"
-                onClick={signOut}
-                className="rounded-full border border-app-border bg-white px-3 py-2 text-sm font-semibold transition hover:-translate-y-0.5"
-              >
-                Выйти
-              </button>
-            ) : (
-              <NavLink
-                to="/auth"
-                className="rounded-full border border-app-border bg-white px-3 py-2 text-sm font-semibold transition hover:-translate-y-0.5"
-              >
-                Войти
-              </NavLink>
-            )}
           </div>
         </div>
 
@@ -72,7 +53,7 @@ export function AppLayout() {
             <NavItem to="/feed">Лента</NavItem>
             <NavItem to="/map">Карта</NavItem>
             <NavItem to="/post">Подать</NavItem>
-            {user ? <NavItem to="/my">Мои</NavItem> : <NavItem to="/auth">Войти</NavItem>}
+            <NavItem to="/my">Мои</NavItem>
           </div>
         </div>
       </header>
