@@ -25,7 +25,7 @@ export function AppLayout() {
             <NavLink to="/" className="flex items-center gap-2">
               <div className="grid h-9 w-9 place-items-center rounded-full bg-black/5">🐾</div>
               <div className="leading-tight">
-                <div className="font-heading text-base font-extrabold tracking-tight">Табылды</div>
+                <div className="font-heading text-base font-extrabold tracking-tight">PawMap</div>
                 <div className="text-xs text-black/60">Актобе • lost & found</div>
               </div>
             </NavLink>
