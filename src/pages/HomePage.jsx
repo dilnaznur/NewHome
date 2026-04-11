@@ -94,7 +94,7 @@ export function HomePage() {
               Потерял питомца? Нашёл животное?
             </h1>
             <p className="mt-4 max-w-2xl text-base text-black/70 md:text-lg">
-              «Табылды» помогает людям в Актобе быстро находить хозяев и спасать животных.
+              «PawMap» помогает людям в Актобе быстро находить хозяев и спасать животных.
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
